@@ -1,0 +1,317 @@
+// Prisma schema — xem packages/shared/src/types/domain.ts để đối chiếu type TypeScript tương ứng.
+// Mục 18 của đặc tả liệt kê các thực thể bắt buộc.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  googleSub   String   @unique
+  email       String   @unique
+  displayName String
+  avatarUrl   String?
+  // Access/refresh token của Google được mã hoá (AES-GCM) trước khi lưu, không bao giờ ở dạng plain text (mục 20).
+  encryptedRefreshToken String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaces Workspace[]
+  meetings   Meeting[]
+}
+
+model Workspace {
+  id          String   @id @default(uuid())
+  ownerUserId String
+  owner       User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects Project[]
+  groups   Group[]
+  meetings Meeting[]
+
+  @@index([ownerUserId])
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  groups   Group[]
+  meetings Meeting[]
+
+  @@index([workspaceId])
+}
+
+model Group {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  meetings Meeting[]
+
+  @@index([workspaceId])
+  @@index([projectId])
+}
+
+enum MeetingStatus {
+  draft
+  recording
+  paused
+  uploading
+  processing
+  completed
+  failed
+}
+
+model Meeting {
+  id                  String        @id @default(uuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId         String
+  workspace           Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId           String?
+  project             Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  groupId             String?
+  group               Group?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  title               String
+  location            String?
+  initialNote         String?
+  startedAt           DateTime?
+  endedAt             DateTime?
+  durationSeconds     Int?
+  status              MeetingStatus @default(draft)
+  sourceLanguages     String[]
+  targetLanguage      String        @default("vi-VN")
+  speakerCountEstimate Int?
+  driveFolderId       String?
+  consentConfirmedAt  DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  audioChunks        AudioChunk[]
+  transcriptSegments TranscriptSegment[]
+  topics             Topic[]
+  decisions          Decision[]
+  actionItems        ActionItem[]
+  manualNotes        ManualNote[]
+  attachments        Attachment[]
+  shareLinks         ShareLink[]
+  processingJobs     ProcessingJob[]
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([groupId])
+  @@index([status])
+}
+
+enum AudioChunkStatus {
+  local
+  queued
+  uploading
+  uploaded
+  transcribed
+  failed
+}
+
+model AudioChunk {
+  id               String           @id @default(uuid())
+  meetingId        String
+  meeting          Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  sequence         Int
+  startOffsetMs    Int
+  endOffsetMs      Int
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String
+  status           AudioChunkStatus @default(local)
+  uploadAttempts   Int              @default(0)
+  storageObjectKey String?
+  errorMessage     String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  transcriptSegments TranscriptSegment[]
+
+  @@unique([meetingId, sequence])
+  @@index([meetingId, status])
+}
+
+enum TranscriptSegmentStage {
+  interim
+  final
+}
+
+model TranscriptSegment {
+  id               String                  @id @default(uuid())
+  meetingId        String
+  meeting          Meeting                 @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  audioChunkId     String?
+  audioChunk       AudioChunk?             @relation(fields: [audioChunkId], references: [id], onDelete: SetNull)
+  sequence         Int
+  startOffsetMs    Int
+  endOffsetMs      Int
+  speakerLabel     String
+  detectedLanguage String
+  originalText     String
+  translatedText   String?
+  confidence       Float
+  stage            TranscriptSegmentStage  @default(interim)
+  lowConfidence    Boolean                 @default(false)
+  highlighted      Boolean                 @default(false)
+  editedByUser     Boolean                 @default(false)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([meetingId, sequence])
+  @@index([meetingId, stage])
+}
+
+model Topic {
+  id                   String   @id @default(uuid())
+  meetingId            String
+  meeting              Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  title                String
+  startOffsetMs        Int
+  endOffsetMs          Int
+  discussionSummary    String
+  differingViewpoints  String?
+  conclusion           String?
+  conclusionStatus     String   @default("open")
+  editedByUser         Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  decisions Decision[]
+
+  @@index([meetingId])
+}
+
+model Decision {
+  id                 String   @id @default(uuid())
+  meetingId          String
+  meeting            Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  topicId            String?
+  topic              Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  content            String
+  occurredAtOffsetMs Int
+  confidence         Float
+  sourceSegmentIds   String[]
+  editedByUser       Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([meetingId])
+}
+
+enum ActionItemStatus {
+  chua_thuc_hien
+  dang_thuc_hien
+  hoan_thanh
+}
+
+model ActionItem {
+  id               String            @id @default(uuid())
+  meetingId        String
+  meeting          Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  content          String
+  assignee         String?
+  dueDate          String?
+  status           ActionItemStatus  @default(chua_thuc_hien)
+  sourceSegmentIds String[]
+  editedByUser     Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([meetingId])
+}
+
+model ManualNote {
+  id                String   @id @default(uuid())
+  meetingId         String
+  meeting           Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  type              String
+  content           String?
+  occurredAtOffsetMs Int
+  nearestSegmentId  String?
+  attachmentId      String?  @unique
+  attachment        Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  createdAt         DateTime @default(now())
+
+  @@index([meetingId])
+}
+
+model Attachment {
+  id               String   @id @default(uuid())
+  meetingId        String
+  meeting          Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  fileName         String
+  mimeType         String
+  sizeBytes        Int
+  storageObjectKey String
+  driveFileId      String?
+  createdAt        DateTime @default(now())
+
+  manualNote ManualNote?
+
+  @@index([meetingId])
+}
+
+model ShareLink {
+  id          String   @id @default(uuid())
+  meetingId   String
+  meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  visibility  String   @default("private")
+  driveFileId String
+  url         String
+  createdAt   DateTime @default(now())
+
+  @@index([meetingId])
+}
+
+enum ProcessingJobType {
+  transcribe_chunk
+  realtime_summary
+  finalize_meeting
+  drive_export
+}
+
+enum ProcessingJobStatus {
+  pending
+  running
+  succeeded
+  failed
+}
+
+model ProcessingJob {
+  id           String              @id @default(uuid())
+  meetingId    String
+  meeting      Meeting             @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  type         ProcessingJobType
+  status       ProcessingJobStatus @default(pending)
+  attempts     Int                 @default(0)
+  payload      Json
+  errorMessage String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([meetingId])
+  @@index([status, type])
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Placeholder icon — cần thay bằng bộ nhận diện thương hiệu chính thức trước khi phát hành. -->
+  <rect width="512" height="512" rx="96" fill="#2563eb" />
+  <circle cx="256" cy="213" r="80" fill="#ffffff" />
+  <rect x="150" y="320" width="212" height="36" rx="18" fill="#ffffff" />
+  <rect x="176" y="378" width="160" height="26" rx="13" fill="#bfdbfe" />
+</svg>
