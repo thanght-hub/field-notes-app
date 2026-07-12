@@ -12,6 +12,7 @@
 | [`docs/security.md`](docs/security.md) | Bảo mật và quyền riêng tư |
 | [`docs/google-cloud-setup.md`](docs/google-cloud-setup.md) | Cách bật API, tạo OAuth Client, service account trên Google Cloud |
 | [`docs/testing-checklist.md`](docs/testing-checklist.md) | Checklist kiểm thử thủ công Android/iPhone/Desktop |
+| [`docs/deploy-cloud-run.md`](docs/deploy-cloud-run.md) | Triển khai lên Google Cloud Run bằng Cloud Shell để cài lên điện thoại |
 
 ## Cấu trúc thư mục
 
