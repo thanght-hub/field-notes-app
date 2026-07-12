@@ -156,12 +156,9 @@ export default async function resultsRoutes(fastify: FastifyInstance): Promise<v
   );
 
   // ---- Summary ----
-  // GHI CHÚ QUAN TRỌNG (xem báo cáo cuối task): schema hiện chưa có nơi lưu "tóm tắt điều hành"
-  // (executive summary / final-summary.v1, mục 2.2 bước 7 trong docs/architecture.md) của một Meeting
-  // đã hoàn tất. Tạm thời: nếu meeting chưa 'completed', trả về bản nháp từ getLatestSummarySnapshot
-  // (nếu module pipeline/realtime-summary.ts đã sẵn sàng); nếu đã 'completed', trả executiveSummary=null
-  // kèm ghi chú rõ ràng để không bịa nội dung. Cần cân nhắc thêm cột Meeting.executiveSummary (hoặc bảng
-  // riêng) + migration để route này trả đúng dữ liệu cuối cùng.
+  // Meeting.executiveSummary (cột đã bổ sung vào schema) lưu tóm tắt điều hành cuối cùng do
+  // bước finalize_meeting (final-summary.v1) sinh ra. Trước khi hoàn tất, trả kèm bản nháp
+  // thời gian thực (mục 9) để người dùng theo dõi — bản nháp không thay thế bản cuối.
   fastify.get<{ Params: { id: string } }>("/meetings/:id/summary", async (request) => {
     const userId = requireUserId(request);
     const meeting = await assertMeetingOwnership(request.params.id, userId);
@@ -178,10 +175,8 @@ export default async function resultsRoutes(fastify: FastifyInstance): Promise<v
 
     return {
       meetingId: meeting.id,
-      executiveSummary: null,
+      executiveSummary: meeting.executiveSummary ?? null,
       draftSummary,
-      note:
-        "executiveSummary chưa có nơi lưu trữ trong schema hiện tại — cần bổ sung cột Meeting.executiveSummary (hoặc bảng riêng) và migration tương ứng.",
     };
   });
 }

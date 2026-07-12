@@ -64,6 +64,8 @@ export interface Meeting {
   targetLanguage: TargetLanguage;
   speakerCountEstimate?: number;
   driveFolderId?: string;
+  /** Tóm tắt điều hành cuối cùng (mục 10.2), do bước finalize_meeting sinh ra sau khi họp kết thúc. */
+  executiveSummary?: string;
   consentConfirmedAt?: string;
   createdAt: string;
   updatedAt: string;

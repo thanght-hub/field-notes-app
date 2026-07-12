@@ -101,6 +101,8 @@ model Meeting {
   targetLanguage      String        @default("vi-VN")
   speakerCountEstimate Int?
   driveFolderId       String?
+  // Tóm tắt điều hành cuối cùng (mục 10.2) — do bước finalize_meeting (final-summary.v1) sinh ra sau khi họp kết thúc.
+  executiveSummary    String?
   consentConfirmedAt  DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
