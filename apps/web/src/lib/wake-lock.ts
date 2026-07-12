@@ -8,11 +8,13 @@ interface WakeLockSentinelLike {
   release: () => Promise<void>;
 }
 
-interface NavigatorWithWakeLock extends Navigator {
+// Dùng intersection thay vì `extends Navigator` để tránh xung đột nếu phiên bản `lib.dom.d.ts`
+// đang dùng đã tự khai báo sẵn `Navigator.wakeLock` với hình dạng hơi khác (API còn khá mới).
+type NavigatorWithWakeLock = Navigator & {
   wakeLock?: {
     request: (type: "screen") => Promise<WakeLockSentinelLike>;
   };
-}
+};
 
 export interface WakeLockHandle {
   supported: boolean;

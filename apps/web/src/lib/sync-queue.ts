@@ -112,10 +112,13 @@ export class SyncQueue {
     }
   }
 
+  // Toàn bộ thân hàm được bọc try/catch/finally để đảm bảo promise trả về KHÔNG BAO GIỜ reject —
+  // hàm này luôn được gọi kiểu "fire-and-forget" (`void this.uploadOne(chunk)`) nên một lỗi
+  // IndexedDB/network không mong muốn ở đây không được phép trở thành unhandled rejection.
   private async uploadOne(chunk: LocalAudioChunkRecord): Promise<void> {
     this.uploadingSequences.add(chunk.sequence);
-    await updateChunkStatus(chunk.meetingId, chunk.sequence, "uploading");
     try {
+      await updateChunkStatus(chunk.meetingId, chunk.sequence, "uploading");
       const ack = await uploadChunk(chunk.meetingId, chunk);
       await updateChunkStatus(
         chunk.meetingId,
@@ -124,11 +127,15 @@ export class SyncQueue {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Tải đoạn ghi âm lên thất bại.";
-      await updateChunkStatus(chunk.meetingId, chunk.sequence, "failed", {
-        attempts: chunk.attempts + 1,
-        errorMessage: message,
-        lastAttemptAt: Date.now(),
-      });
+      try {
+        await updateChunkStatus(chunk.meetingId, chunk.sequence, "failed", {
+          attempts: chunk.attempts + 1,
+          errorMessage: message,
+          lastAttemptAt: Date.now(),
+        });
+      } catch {
+        // IndexedDB không khả dụng — bỏ qua, lần tick() kế tiếp sẽ thử lại.
+      }
     } finally {
       this.uploadingSequences.delete(chunk.sequence);
     }

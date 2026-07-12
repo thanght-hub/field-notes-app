@@ -1,4 +1,5 @@
 import type { ProcessingJobType } from "@field-notes/shared";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../db/client.js";
 
 /**
@@ -19,7 +20,7 @@ export async function enqueueJob(input: EnqueueJobInput): Promise<string> {
     data: {
       meetingId: input.meetingId,
       type: input.type,
-      payload: input.payload,
+      payload: input.payload as Prisma.InputJsonValue,
       status: "pending",
     },
   });
@@ -85,7 +86,6 @@ export function startJobQueueWorker(intervalMs = 2000): void {
   if (pollingTimer) return;
   pollingTimer = setInterval(() => {
     pollOnce().catch((err) => {
-      // eslint-disable-next-line no-console
       console.error("job_queue_poll_error", err);
     });
   }, intervalMs);

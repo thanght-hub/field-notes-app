@@ -13,17 +13,20 @@ import { enqueueJob } from "../queue/job-queue.js";
  * Dùng updateMany với điều kiện status hiện tại = 'uploading' để đảm bảo chỉ một lời gọi duy nhất
  * (trong số nhiều lời gọi đua nhau) thực sự chuyển trạng thái và enqueue job — tránh enqueue trùng.
  *
- * Lưu ý: điều kiện "đã uploaded" được hiểu chặt theo đặc tả (status === 'uploaded'), không tính
- * các chunk đã tiến xa hơn thành 'transcribed' — nếu worker transcribe_chunk chạy nhanh hơn và đổi
- * status trước khi hàm này kiểm tra xong thì sẽ cần một lần gọi maybeTransitionToProcessing khác để
- * bắt kịp (không thuộc phạm vi route ở đây, do worker transcribe_chunk phụ trách).
+ * "Đã upload xong" nghĩa là KHÔNG còn ở các trạng thái transient trước khi có mặt trên server
+ * ('local'/'queued'/'uploading') — một chunk đã tiến xa hơn thành 'transcribed' (worker
+ * transcribe_chunk chạy nhanh hơn thời điểm gọi hàm này) vẫn được tính là đã upload xong, KHÔNG
+ * chặn việc chuyển sang 'processing'. Một chunk 'failed' cũng không chặn vô thời hạn — cuộc họp vẫn
+ * cần hoàn tất dù thiếu 1 đoạn audio lỗi (mục 21: không để 1 lỗi làm hỏng toàn bộ pipeline).
+ * Gọi ở 3 nơi: routes/meetings.ts (bấm "Kết thúc"), routes/chunks.ts (mỗi chunk vừa 'uploaded'),
+ * pipeline/transcribe-chunk.ts (mỗi chunk vừa xử lý xong thành 'transcribed').
  */
 export async function maybeTransitionToProcessing(meetingId: string): Promise<void> {
   const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
   if (!meeting || meeting.status !== "uploading") return;
 
   const pendingChunks = await prisma.audioChunk.count({
-    where: { meetingId, status: { not: "uploaded" } },
+    where: { meetingId, status: { in: ["local", "queued", "uploading"] } },
   });
   if (pendingChunks > 0) return;
 

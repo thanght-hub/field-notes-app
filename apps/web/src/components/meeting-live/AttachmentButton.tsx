@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, type ChangeEvent } from "react";
 
 export interface AttachmentButtonHandle {
   open: () => void;
@@ -25,7 +25,7 @@ export const AttachmentButton = forwardRef<AttachmentButtonHandle, AttachmentBut
       open: () => inputRef.current?.click(),
     }));
 
-    async function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    async function handleChange(event: ChangeEvent<HTMLInputElement>) {
       const file = event.target.files?.[0];
       event.target.value = "";
       if (!file) return;

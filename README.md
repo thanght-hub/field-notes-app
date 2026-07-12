@@ -55,6 +55,20 @@ pnpm dev:web   # http://localhost:3000
 
 Mặc định `.env.example` đặt `AI_PROVIDER=mock` — toàn bộ luồng ghi âm/transcript/tóm tắt chạy được bằng dữ liệu giả lập, không cần khoá Google Cloud thật. Khi sẵn sàng dùng dịch vụ thật, làm theo [`docs/google-cloud-setup.md`](docs/google-cloud-setup.md) rồi đổi `AI_PROVIDER=google`.
 
+## Kiểm thử backend (test tích hợp có DB thật)
+
+`apps/api/test/*.test.ts` chạy tích hợp thật qua `fastify.inject()` (không mở cổng TCP) trên một PostgreSQL thật — không dùng DB giả lập. Cần một database riêng cho test:
+
+```bash
+createdb field_notes_test   # hoặc: psql -c "CREATE DATABASE field_notes_test;"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/field_notes_test?schema=public" \
+  pnpm --filter @field-notes/api exec prisma migrate deploy
+
+pnpm --filter @field-notes/api test
+```
+
+`apps/api/test/setup.ts` tự điền các biến môi trường còn thiếu (secret giả cho test, `DATABASE_URL` mặc định trỏ tới `field_notes_test`) — có thể ghi đè bằng cách export biến môi trường trước khi chạy `pnpm test`.
+
 ## Lint, type-check, test
 
 ```bash

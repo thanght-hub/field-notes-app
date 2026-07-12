@@ -25,7 +25,9 @@ export class ApiError extends Error {
 }
 
 export interface ApiFetchOptions extends Omit<RequestInit, "body"> {
-  body?: BodyInit | Record<string, unknown> | undefined;
+  // Dùng `object` thay vì `Record<string, unknown>` để các interface cụ thể (không có index
+  // signature) như CreateMeetingInput vẫn gán được vào đây mà không bị TypeScript từ chối.
+  body?: BodyInit | object | undefined;
 }
 
 /**

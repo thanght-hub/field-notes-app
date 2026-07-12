@@ -22,6 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const current = await fetchCurrentUser();
       setUser(current);
+    } catch {
+      // Lỗi mạng khi kiểm tra phiên đăng nhập — coi như chưa đăng nhập, người dùng có thể thử lại
+      // bằng cách tải lại trang hoặc đăng nhập lại.
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -32,8 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const logout = useCallback(async () => {
-    await logoutRequest();
-    setUser(null);
+    try {
+      await logoutRequest();
+    } finally {
+      // Luôn xoá trạng thái đăng nhập phía client kể cả khi gọi API logout thất bại (vd mất mạng) —
+      // tránh người dùng bị kẹt ở trạng thái tưởng như vẫn đăng nhập.
+      setUser(null);
+    }
   }, []);
 
   return (

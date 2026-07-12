@@ -1,7 +1,19 @@
 import { ERROR_CODES, ERROR_MESSAGES_VI, type ErrorCode } from "@field-notes/shared";
+import { ApiError } from "./api/client";
 
 export { ERROR_CODES, ERROR_MESSAGES_VI };
 export type { ErrorCode };
+
+export interface DisplayError {
+  code?: string;
+  messageVi: string;
+}
+
+/** Chuẩn hoá bất kỳ lỗi bắt được (thường từ `catch`) thành `{code?, messageVi}` để hiển thị. */
+export function toDisplayError(err: unknown, fallbackVi: string = ERROR_MESSAGES_VI.INTERNAL_ERROR): DisplayError {
+  if (err instanceof ApiError) return { code: err.code, messageVi: err.messageVi };
+  return { messageVi: fallbackVi };
+}
 
 /**
  * Diễn giải các lỗi bắt được PHÍA CLIENT (trước khi kịp có response từ server) thành

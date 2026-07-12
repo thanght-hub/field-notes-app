@@ -77,9 +77,13 @@ export function useRecorder(meetingId: string): UseRecorderResult {
     queue.start();
     syncQueueRef.current = queue;
 
-    void getRecordingSession(meetingId).then((session) => {
-      if (session) setRecoveredSession(session);
-    });
+    void getRecordingSession(meetingId)
+      .then((session) => {
+        if (session) setRecoveredSession(session);
+      })
+      .catch(() => {
+        // IndexedDB không khả dụng — bỏ qua, coi như không có phiên nào để khôi phục.
+      });
 
     return () => {
       unsubscribe();
@@ -114,12 +118,14 @@ export function useRecorder(meetingId: string): UseRecorderResult {
 
   const persistSession = useCallback(
     (status: string) => {
-      void saveRecordingSession({
+      saveRecordingSession({
         meetingId,
         startedAt: startedAtRef.current,
         lastKnownStatus: status,
         chunkCount: chunkCountRef.current,
         updatedAt: Date.now(),
+      }).catch(() => {
+        // IndexedDB không khả dụng — chỉ mất khả năng khôi phục sau reload, không chặn ghi âm.
       });
     },
     [meetingId],

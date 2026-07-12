@@ -2,6 +2,7 @@
   "name": "field-notes-app",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Ghi âm, dịch và tóm tắt cuộc họp Việt - Trung",
   "engines": {
     "node": ">=20"

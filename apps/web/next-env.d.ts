@@ -1,5 +1,6 @@
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
+/// <reference path="./.next/types/routes.d.ts" />
 
-// NOTE: File này thường được Next.js tự sinh khi chạy `next dev`/`next build`.
-// Được tạo thủ công ở đây để `tsc --noEmit` chạy được trước khi cài đặt dependencies.
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.

@@ -109,6 +109,15 @@ export default async function notesRoutes(fastify: FastifyInstance): Promise<voi
     });
   });
 
+  fastify.get<{ Params: { id: string } }>("/meetings/:id/attachments", async (request) => {
+    const userId = requireUserId(request);
+    const meeting = await assertMeetingOwnership(request.params.id, userId);
+    return prisma.attachment.findMany({
+      where: { meetingId: meeting.id },
+      orderBy: { createdAt: "asc" },
+    });
+  });
+
   fastify.get<{ Params: { id: string; attachmentId: string } }>(
     "/meetings/:id/attachments/:attachmentId/content",
     async (request, reply) => {

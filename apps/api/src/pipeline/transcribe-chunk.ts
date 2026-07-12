@@ -3,6 +3,7 @@ import { loadEnv } from "../config/env.js";
 import { prisma } from "../db/client.js";
 import { getProviders } from "../providers/index.js";
 import { enqueueJob, registerWorker } from "../queue/job-queue.js";
+import { maybeTransitionToProcessing } from "../services/meeting-lifecycle.js";
 import { getStorageProvider } from "../storage/index.js";
 
 const env = loadEnv();
@@ -86,6 +87,10 @@ registerWorker("transcribe_chunk", async (job) => {
   });
 
   await prisma.audioChunk.update({ where: { id: chunk.id }, data: { status: "transcribed" } });
+
+  // Bắt kịp trường hợp meeting đã ở 'uploading' chờ nốt chunk cuối, nhưng chunk đó đã tiến xa hơn
+  // thành 'transcribed' trước khi routes/chunks.ts kiểm tra xong (race condition).
+  await maybeTransitionToProcessing(chunk.meetingId);
 
   const now = Date.now();
   const last = lastSummaryEnqueuedAt.get(chunk.meetingId) ?? 0;
