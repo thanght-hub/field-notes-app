@@ -28,10 +28,30 @@ function describeMimeTypeForLog(mimeType: string): string {
   return `không xác định (${mimeType}) - vẫn thử auto-decoding`;
 }
 
-function toMillis(duration: { seconds?: number | string | null; nanos?: number | null } | null | undefined): number {
+type ProtoDurationLike =
+  | {
+      seconds?: number | string | { toNumber?: () => number } | null;
+      nanos?: number | null;
+    }
+  | null
+  | undefined;
+
+/**
+ * `google.protobuf.Duration` có thể được SDK generate với `seconds` là number, string, hoặc kiểu
+ * Long-like (`{toNumber()}`) tuỳ cấu hình gRPC — xử lý cả 3 dạng để tránh NaN khi tính mili-giây.
+ */
+function protoNumberToNumber(value: number | string | { toNumber?: () => number } | null | undefined): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return Number(value) || 0;
+  if (typeof value.toNumber === "function") return value.toNumber();
+  return 0;
+}
+
+function toMillis(duration: ProtoDurationLike): number {
   if (!duration) return 0;
-  const seconds = Number(duration.seconds ?? 0);
-  const nanos = Number(duration.nanos ?? 0);
+  const seconds = protoNumberToNumber(duration.seconds);
+  const nanos = protoNumberToNumber(duration.nanos);
   return Math.round(seconds * 1000 + nanos / 1_000_000);
 }
 
@@ -90,8 +110,8 @@ export class GoogleSpeechRecognitionProvider implements SpeechRecognitionProvide
 
     const words: RecognizedWord[] = (alternative.words ?? []).map((w) => ({
       text: w.word ?? "",
-      startOffsetMs: toMillis(w.startOffset ?? undefined),
-      endOffsetMs: toMillis(w.endOffset ?? undefined),
+      startOffsetMs: toMillis(w.startOffset),
+      endOffsetMs: toMillis(w.endOffset),
       confidence: w.confidence ?? alternative.confidence ?? 0,
     }));
 
