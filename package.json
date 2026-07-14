@@ -1,0 +1,28 @@
+{
+  "name": "field-notes-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Ghi âm, dịch và tóm tắt cuộc họp Việt - Trung",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @field-notes/web dev",
+    "dev:api": "pnpm --filter @field-notes/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "prepare": "husky || true"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "eslint": "^9.14.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.13.0"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
